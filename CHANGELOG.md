@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — unreleased
+## 0.3.0 — 2026-09-07
 
 - Validates complete routes before starting.
 - Rejects broken dimension continuity, duplicate names, invalid types, invalid dimensions, and out-of-range coordinates.

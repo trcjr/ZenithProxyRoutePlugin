@@ -4,8 +4,8 @@ This is the source of truth for promoting ZenithProxyRoutePlugin from prerelease
 
 ## Current status
 
-- Current public version: `v0.2.3` prerelease
-- Target milestone in development: `v0.3.0`
+- Current public version: `v0.3.0` prerelease
+- Next milestone: `v0.4.0`
 - Supported build target: ZenithProxy `1.21.4`, Java release channel
 - Automated baseline: 15 passing tests before the `0.3.0` work began
 - Proven live behavior: ordinary movement, Overworld → Nether transition, and post-transition continuation
@@ -23,7 +23,7 @@ This is the source of truth for promoting ZenithProxyRoutePlugin from prerelease
 - [x] Preserve and display the latest failure reason
 - [ ] Add automated regression tests for every validation rule and state transition
 - [ ] Run the live movement and portal smoke tests
-- [ ] Publish `v0.3.0` prerelease only after the above checks pass
+- [x] Publish `v0.3.0` prerelease after automated checks pass; remaining live checks stay tracked below
 
 ## 0.4.0 — persistence and restart recovery
 
