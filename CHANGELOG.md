@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — unreleased
+
+- Validates complete routes before starting.
+- Rejects broken dimension continuity, duplicate names, invalid types, invalid dimensions, and out-of-range coordinates.
+- Adds `route validate`.
+- Adds explicit execution state and failure-reason fields to status output.
+- Expands deterministic validation regression coverage.
+
 ## 0.2.3 — 2026-09-07
 
 Initial public prerelease.
@@ -13,4 +21,3 @@ Initial public prerelease.
 - Requires exact positioning for portal steps.
 - Pauses on path failure, transition timeout, or unexpected dimensions.
 - Includes regression coverage for false and reversed portal transitions.
-

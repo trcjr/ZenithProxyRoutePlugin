@@ -12,6 +12,8 @@ public class RouteConfig {
     public int moveArrivalRadius = 2;
     /** True only after the current portal step has actually issued its Baritone goal. */
     public boolean portalTransitionArmed = false;
+    public String executionState = "STOPPED";
+    public String failureReason = "";
 
     public static final class RouteStep {
         public String name = "";

@@ -15,6 +15,7 @@ import static com.trcjr.zenithroute.RouteLogic.PortalState.TRANSITION_COMPLETE;
 import static com.trcjr.zenithroute.RouteLogic.normalizeDimension;
 import static com.trcjr.zenithroute.RouteLogic.portalState;
 import static com.trcjr.zenithroute.RouteLogic.goalFor;
+import static com.trcjr.zenithroute.RouteLogic.validateRoute;
 import static com.zenith.Globals.BARITONE;
 
 public class OrderedRouteModule extends Module {
@@ -68,15 +69,18 @@ public class OrderedRouteModule extends Module {
         stopRoute();
         CONFIG.steps.clear();
         CONFIG.portalTransitionArmed = false;
+        setState("STOPPED", "");
     }
 
     public synchronized void startRoute() {
-        if (CONFIG.steps.isEmpty()) throw new IllegalStateException("The route has no steps");
+        var validation = validateRoute(CONFIG.steps, CONFIG.moveArrivalRadius);
+        if (!validation.valid()) throw new IllegalStateException(validation.describe());
         CONFIG.currentIndex = 0;
         CONFIG.portalTransitionArmed = false;
         verifyCurrentStepDimension();
         CONFIG.paused = false;
         CONFIG.enabled = true;
+        setState("READY", "");
         resetRuntimeState();
         syncEnabledFromConfig();
     }
@@ -84,6 +88,7 @@ public class OrderedRouteModule extends Module {
     public synchronized void pauseRoute(String reason) {
         if (!CONFIG.enabled) throw new IllegalStateException("No route is active");
         CONFIG.paused = true;
+        setState("PAUSED", "");
         stopOurGoal();
         resetRuntimeState();
         warn("Ordered route paused: {}", reason);
@@ -101,6 +106,7 @@ public class OrderedRouteModule extends Module {
         }
         verifyCurrentStepDimension();
         CONFIG.paused = false;
+        setState("READY", "");
         resetRuntimeState();
     }
 
@@ -110,16 +116,24 @@ public class OrderedRouteModule extends Module {
         CONFIG.paused = false;
         CONFIG.currentIndex = 0;
         CONFIG.portalTransitionArmed = false;
+        setState("STOPPED", "");
         resetRuntimeState();
         syncEnabledFromConfig();
     }
 
     public synchronized String describeStatus() {
-        if (CONFIG.steps.isEmpty()) return "Empty route";
-        if (!CONFIG.enabled) return "Stopped; " + CONFIG.steps.size() + " configured steps";
+        if (CONFIG.steps.isEmpty()) return CONFIG.executionState + "; empty route";
+        if (!CONFIG.enabled) {
+            String status = CONFIG.executionState + "; " + CONFIG.steps.size() + " configured steps";
+            return CONFIG.failureReason.isBlank() ? status : status + "\nReason: " + CONFIG.failureReason;
+        }
         if (CONFIG.currentIndex >= CONFIG.steps.size()) return "Complete";
-        String state = CONFIG.paused ? "Paused" : waitingForPortal ? "Waiting for portal transition" : goalIssued ? "Pathing" : "Ready";
-        return state + " at step " + (CONFIG.currentIndex + 1) + "/" + CONFIG.steps.size() + ": " + currentStep();
+        String status = CONFIG.executionState + " at step " + (CONFIG.currentIndex + 1) + "/" + CONFIG.steps.size() + ": " + currentStep();
+        return CONFIG.failureReason.isBlank() ? status : status + "\nReason: " + CONFIG.failureReason;
+    }
+
+    public synchronized String validateConfiguredRoute() {
+        return validateRoute(CONFIG.steps, CONFIG.moveArrivalRadius).describe();
     }
 
     private synchronized void handleBotTick(ClientBotTick event) {
@@ -129,7 +143,10 @@ public class OrderedRouteModule extends Module {
         if (reconcilePortalAfterRestart()) return;
 
         RouteStep step = currentStep();
-        if (step.isPortal() && CONFIG.portalTransitionArmed) waitingForPortal = true;
+        if (step.isPortal() && CONFIG.portalTransitionArmed) {
+            waitingForPortal = true;
+            setState("WAITING_FOR_PORTAL", "");
+        }
         if (!currentDimension().equals(step.dimension)) {
             pauseInternal("dimension mismatch: expected=" + step.dimension + ", current=" + currentDimension());
             return;
@@ -150,6 +167,7 @@ public class OrderedRouteModule extends Module {
             if (step.isPortal()) {
                 waitingForPortal = true;
                 portalWaitTicks = 0;
+                setState("WAITING_FOR_PORTAL", "");
                 info("Arrived at portal step {}; waiting for dimension {}", step.name, step.targetDimension);
             } else {
                 advanceStep();
@@ -185,6 +203,7 @@ public class OrderedRouteModule extends Module {
         activeGoal = issuedGoal;
         goalIssued = true;
         if (step.isPortal()) CONFIG.portalTransitionArmed = true;
+        setState("PATHING", "");
         inactiveTicks = 0;
         info("Pathing route step {}/{}: {}", CONFIG.currentIndex + 1, CONFIG.steps.size(), step);
         BARITONE.pathTo(issuedGoal).addExecutedListener(future -> {
@@ -197,6 +216,7 @@ public class OrderedRouteModule extends Module {
     private void advanceStep() {
         CONFIG.currentIndex++;
         CONFIG.portalTransitionArmed = false;
+        setState("READY", "");
         resetRuntimeState();
         if (CONFIG.currentIndex >= CONFIG.steps.size()) completeRoute();
         else info("Advancing route to step {}/{}", CONFIG.currentIndex + 1, CONFIG.steps.size());
@@ -207,12 +227,14 @@ public class OrderedRouteModule extends Module {
         CONFIG.enabled = false;
         CONFIG.paused = false;
         CONFIG.portalTransitionArmed = false;
+        setState("COMPLETE", "");
         resetRuntimeState();
         syncEnabledFromConfig();
     }
 
     private void pauseInternal(String reason) {
         CONFIG.paused = true;
+        setState("FAILED", reason);
         stopOurGoal();
         resetRuntimeState();
         warn("Ordered route paused: {}", reason);
@@ -244,5 +266,10 @@ public class OrderedRouteModule extends Module {
         inactiveTicks = 0;
         portalWaitTicks = 0;
         activeGoal = null;
+    }
+
+    private void setState(String state, String failureReason) {
+        CONFIG.executionState = state;
+        CONFIG.failureReason = failureReason;
     }
 }

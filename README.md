@@ -1,9 +1,9 @@
-# ZenithProxy Ordered Routes — rough POC
+# ZenithProxy Ordered Routes
 
 [![Build and test](https://github.com/trcjr/ZenithProxyRoutePlugin/actions/workflows/build.yml/badge.svg)](https://github.com/trcjr/ZenithProxyRoutePlugin/actions/workflows/build.yml)
 [![Latest release](https://img.shields.io/github/v/release/trcjr/ZenithProxyRoutePlugin?include_prereleases)](https://github.com/trcjr/ZenithProxyRoutePlugin/releases)
 
-A small proof of concept for navigating one unattended ZenithProxy bot through ordered 3D movement and portal-transition steps. It is based on [ZenithProxyExamplePlugin](https://github.com/rfresh2/ZenithProxyExamplePlugin) and currently targets the ZenithProxy `1.21.4` API.
+A ZenithProxy plugin for navigating one unattended bot through an ordered sequence of movement and portal-transition steps. It is based on [ZenithProxyExamplePlugin](https://github.com/rfresh2/ZenithProxyExamplePlugin) and currently targets the ZenithProxy `1.21.4` API.
 
 ## Scope
 
@@ -31,23 +31,17 @@ The jar is written to `build/libs/`.
 
 Tagged releases run the same clean test/build command in GitHub Actions, publish the jar, and attach a SHA-256 checksum file.
 
+## Development status
+
+Releases are currently prereleases while restart recovery and the full live integration matrix are completed. See [RELEASE_PLAN.md](RELEASE_PLAN.md) for the stable-release criteria and [TESTING.md](TESTING.md) for test procedures.
+
 ## Tests
 
 ```text
 ./gradlew clean test build
 ```
 
-The automated suite currently covers:
-
-- The original false portal-transition regression.
-- Reversed source/target portal dimensions.
-- Armed versus unarmed portal states.
-- Correct source, target, and unrelated-dimension behavior.
-- Movement and portal step construction.
-- Dimension aliases and invalid dimensions.
-- Safe initial configuration state.
-
-These are deterministic unit tests. A live integration checklist is still required before publishing because an ordinary test process cannot simulate the server's portal timing and packets.
+The automated suite covers route validation, portal state decisions, goal tolerances, dimension handling, and previously reported regressions. Live procedures cover server-controlled portal timing and restart behavior.
 
 ## Commands
 
@@ -56,6 +50,7 @@ route move <name> <dimension> <x> <y> <z>
 route portal <name> <fromDimension> <targetDimension> <x> <y> <z>
 route radius <blocks>
 route list
+route validate
 route start
 route status
 route pause
@@ -68,32 +63,21 @@ Alias: `rt`.
 
 Ordinary movement steps use a configurable 3D arrival radius, defaulting to 2 blocks. Portal steps still require the exact portal block. Set the movement tolerance with `route radius 1` through `route radius 8`.
 
-## Safe first test
+## Quick start
 
-Use an empty inventory and two nearby reachable positions:
+Define the route, validate it, inspect it, and then start it:
 
 ```text
 route clear
 route move TestA overworld 10 64 10
 route move TestB overworld 20 64 10
+route validate
 route list
 route start
 route status
 ```
 
-After that succeeds, the Rally-01 route is:
-
-```text
-route clear
-route move Rally01Exit nether 0 120 -8220
-route move Rally01Turn nether 467 120 -8220
-route move Rally01PortalApproach nether 467 120 -8315
-route portal Rally01Portal nether overworld 467 120 -8320
-route list
-route start
-```
-
-Verify the actual portal block and its Y-level before using those example coordinates. Valid dimension names are `overworld`, `nether`/`the_nether`, and `end`/`the_end`.
+Valid dimension names are `overworld`, `nether`/`the_nether`, and `end`/`the_end`.
 
 ## Spawn-to-base route shape
 
@@ -108,6 +92,7 @@ route move HighwayExit nether X Y Z
 route move BasePortalApproach nether X Y Z
 route portal BasePortal nether overworld X Y Z
 route move BaseArrival overworld X Y Z
+route validate
 route list
 route start
 ```

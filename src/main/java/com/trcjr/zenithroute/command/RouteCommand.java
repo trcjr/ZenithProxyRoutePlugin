@@ -30,7 +30,7 @@ public class RouteCommand extends Command {
                 "move <name> <dimension> <x> <y> <z>",
                 "portal <name> <fromDimension> <targetDimension> <x> <y> <z>",
                 "radius <blocks>",
-                "list", "start", "status", "pause", "resume", "stop", "clear"
+                "list", "validate", "start", "status", "pause", "resume", "stop", "clear"
             )
             .aliases("rt")
             .build();
@@ -65,6 +65,8 @@ public class RouteCommand extends Command {
                     c.getSource().getEmbed().title("Move Arrival Radius Set")
                         .description(CONFIG.moveArrivalRadius + " blocks");
                 }))))
+            .then(literal("validate").executes((IExecutes<CommandContext>) c -> guarded(c, () ->
+                c.getSource().getEmbed().title("Route Validation").description(module.validateConfiguredRoute()))))
             .then(literal("start").executes((IExecutes<CommandContext>) c -> guarded(c, () -> {
                 module.startRoute();
                 c.getSource().getEmbed().title("Ordered Route Started").description(module.describeStatus());

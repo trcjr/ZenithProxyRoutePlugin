@@ -41,5 +41,7 @@ class RouteConfigTest {
         assertFalse(config.portalTransitionArmed);
         assertEquals(0, config.currentIndex);
         assertEquals(2, config.moveArrivalRadius);
+        assertEquals("STOPPED", config.executionState);
+        assertEquals("", config.failureReason);
     }
 }
